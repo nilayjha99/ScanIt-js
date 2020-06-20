@@ -6,7 +6,7 @@ import Konva from "konva";
 // const appDiv = document.getElementById('app');
 // appDiv.innerHTML = `<h1>JS Starter</h1>`;
 var width = window.innerWidth;
-var height = window.innerHeight / 2;
+var height = window.innerHeight;
 
 var stage = new Konva.Stage({
   container: "app",
@@ -50,11 +50,11 @@ var image = null;
 
 img.onload = function () {
   yoda = new Konva.Image({
-    x: 50,
-    y: 50,
+    x: 0,
+    y: 0,
     image: img,
-    scaleX: 0.5,
-    scaleY: 0.5
+    // scaleX: 0.5,
+    // scaleY: 0.5
   });
 
   // add the shape to the layer
@@ -200,20 +200,18 @@ updateObjects();
 document.getElementById("btn").onclick = () => {
 
   var anchors = {
-    TL: targets.filter(x => { if(x.dir === 'TL') {
-      return [x.x, x.y]
-    } }),
-    TR: targets.filter(x => { if(x.dir === 'TR') {
-      return [x.x, x.y] 
-    }} ),
-    BR: targets.filter(x => { if(x.dir === 'BR') {
-      return [x.x, x.y]
-    }}),
-    BL: targets.filter(x => { if(x.dir === 'BL') {
-      return [x.x, x.y]
-    }} )
+    TL: targets.filter(x => x.dir === 'TL')[0],
+    TR: targets.filter(x => x.dir === 'TR')[0],
+    BR: targets.filter(x => x.dir === 'BR')[0],
+    BL: targets.filter(x => x.dir === 'BL')[0]
     };
 
+    var contours = {
+      TL:{x:anchors.TL.x,y:anchors.TL.y},        // r
+      TR:{x:anchors.TR.x,y:anchors.TR.y},      // g
+      BR:{x:anchors.BR.x,y:anchors.BR.y},    // b
+      BL:{x:anchors.BL.x,y:anchors.BL.y},
+    }
     var unwrapped = {
       TL:{x:0,y:0},        // r
       TR:{x:300,y:0},      // g
@@ -221,7 +219,7 @@ document.getElementById("btn").onclick = () => {
       BL:{x:0,y:300},
     }
 
-   unwarp(anchors, unwrapped, layer1.canvas.context, layer.canvas.context)
+   unwarp(contours, unwrapped, layer1.canvas.context, layer.canvas.context)
 }
 
 // unwarp the source rectangle
