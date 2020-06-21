@@ -2,6 +2,52 @@
 import "./style.css";
 import Konva from "konva";
 
+// load Open CV
+const OPENCV_URL = 'https://docs.opencv.org/master/opencv.js';
+const loadOpenCv = function(onloadCallback) {
+        let script = document.createElement('script');
+        script.setAttribute('async', '');
+        script.setAttribute('type', 'text/javascript');
+        script.addEventListener('load', () => {
+            if (cv.getBuildInformation)
+            {
+                console.log(cv.getBuildInformation());
+                onloadCallback();
+            }
+            else
+            {
+                // WASM
+                cv['onRuntimeInitialized']=()=>{
+                    console.log(cv.getBuildInformation());
+                    onloadCallback();
+                }
+            }
+        });
+        script.addEventListener('error', () => {
+            window.alert('Failed to load ' + OPENCV_URL);
+        });
+        script.src = OPENCV_URL;
+        document.body.appendChild(script);
+        // let node = document.getElementsByTagName('body')[0];
+        // node.parentNode.insertBefore(script, node);
+}
+
+const cropUsingCV = (oldCanvas, canvasElem, pointsArray) => {
+  let src = cv.imread(oldCanvas)
+  const imageHeight = oldCanvas.height;
+  const imageWidth = oldCanvas.width;
+  let dst = new cv.Mat();
+    let dsize = new cv.Size(imageHeight, imageWidth);
+    let srcTri = cv.matFromArray(4, 1, cv.CV_32FC2, pointsArray);
+    let dstTri = cv.matFromArray(4, 1, cv.CV_32FC2, [0, 0, imageHeight, 0, imageHeight, imageWidth, 0, imageWidth]);
+    let M = cv.getPerspectiveTransform(srcTri, dstTri);
+    cv.warpPerspective(src, dst, M, dsize, cv.INTER_LINEAR, cv.BORDER_CONSTANT, new cv.Scalar());
+    // document.getElementById('imageInit').style.display = "none"
+    cv.imshow(canvasElem, dst);
+    src.delete(); dst.delete(); M.delete(); srcTri.delete(); dstTri.delete();
+}
+
+loadOpenCv(() => {console.log('cv Loaded')})
 // Write Javascript code!
 // const appDiv = document.getElementById('app');
 // appDiv.innerHTML = `<h1>JS Starter</h1>`;
@@ -11,20 +57,22 @@ var height = window.innerHeight;
 var stage = new Konva.Stage({
   container: "app",
   width: width,
-  height: height
+  height: height,
 });
 
 var output = new Konva.Stage({
   container: "app1",
-  width: width,
-  height: height
+  width: 595,
+  height: 842,
+  id: 'new-id'
 });
 
-var layer = new Konva.Layer();
+var layer = new Konva.Layer({id: 'old-id'});
+layer.canvas.id = 'old-id';
 stage.add(layer);
 
 
-var layer1 = new Konva.Layer();
+var layer1 = new Konva.Layer({id: 'new-id'});
 output.add(layer1);
 
 var rect1 = new Konva.Rect({
@@ -38,12 +86,14 @@ var rect1 = new Konva.Rect({
   });
       // add the shape to the layer
 layer1.add(rect1);
+layer1.canvas.id = 'new-id';
 layer1.draw()  
 
  // alternative API:
 
 // main API:
 var img = new Image();
+img.id = "source"
 var yoda = null;
 var image = null;
 // var img = new Image()
@@ -62,6 +112,7 @@ img.onload = function () {
   yoda.moveToBottom();
   layer.batchDraw();
 };
+img.crossOrigin = "Anonymous"
 img.src = 'https://p2.piqsels.com/preview/891/296/1003/notebook-pen-book-dairy.jpg';
 
 // Konva.Image.fromURL('https://p2.piqsels.com/preview/891/296/1003/notebook-pen-book-dairy.jpg', function (darthNode) {
@@ -219,7 +270,9 @@ document.getElementById("btn").onclick = () => {
       BL:{x:0,y:300},
     }
 
-   unwarp(contours, unwrapped, layer1.canvas.context, layer.canvas.context)
+    const pointsArray = [contours.TL.x, contours.TL.y, contours.TR.x, contours.TR.y, contours.BR.x, contours.BR.y, contours.BL.x, contours.BL.y]
+    cropUsingCV(layer.getCanvas()._canvas, layer1.getCanvas()._canvas, pointsArray)
+  //  unwarp(contours, unwrapped, layer1.canvas.context, layer.canvas.context)
 }
 
 // unwarp the source rectangle
@@ -291,3 +344,4 @@ function mapTriangle(ctx,p0, p1, p2, p_0, p_1, p_2) {
   // restore the context to it's unclipped untransformed state
   ctx.restore();
 }
+
